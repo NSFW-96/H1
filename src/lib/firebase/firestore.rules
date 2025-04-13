@@ -1,0 +1,47 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow public read access to doctors and articles collections
+    match /doctors/{doctorId} {
+      allow read: if true;
+      // Only allow writes from authenticated users during development
+      allow write: if request.auth != null;
+    }
+    
+    match /articles/{articleId} {
+      allow read: if true;
+      // Only allow writes from authenticated users during development
+      allow write: if request.auth != null;
+    }
+    
+    // Users can only access their own data
+    match /users/{userId} {
+      // Users can read and write their own documents
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // During development, allow data seeding
+      allow create: if request.auth != null;
+    }
+    
+    // Appointments rules
+    match /appointments/{appointmentId} {
+      // Users can read and write their own appointments
+      allow read, write: if request.auth != null && 
+                          resource.data.userId == request.auth.uid;
+      
+      // Allow creating new appointments
+      allow create: if request.auth != null && 
+                    request.resource.data.userId == request.auth.uid;
+                    
+      // During development, allow data seeding
+      allow write: if request.auth != null;
+    }
+    
+    // Development mode - allows seeding data
+    // IMPORTANT: Remove this rule before going to production
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+} 
